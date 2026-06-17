@@ -1,0 +1,839 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: UK Football Fixed Odds Pool Betting API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: public
+  - name: admin
+  - name: agent
+  - name: cashier
+  - name: tickets
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  # ---------- AUTH ----------
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginBody" }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "401":
+          description: Invalid credentials
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "204": { description: Logged out }
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthUser" }
+        "401":
+          description: Not authenticated
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+
+  # ---------- PUBLIC ----------
+  /public/current-week:
+    get:
+      operationId: getPublicCurrentWeek
+      tags: [public]
+      responses:
+        "200":
+          description: Current week info
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicWeekInfo" }
+  /public/agent-applications:
+    post:
+      operationId: submitAgentApplication
+      tags: [public]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentApplicationBody" }
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentApplication" }
+
+  # ---------- ADMIN ----------
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      responses:
+        "200":
+          description: Admin overview
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminStats" }
+
+  /admin/agent-applications:
+    get:
+      operationId: listAgentApplications
+      tags: [admin]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        "200":
+          description: Agent applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentApplication" }
+  /admin/agent-applications/{id}/approve:
+    post:
+      operationId: approveAgentApplication
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApproveAgentBody" }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Agent" }
+  /admin/agent-applications/{id}/reject:
+    post:
+      operationId: rejectAgentApplication
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentApplication" }
+
+  /admin/agents:
+    get:
+      operationId: listAgents
+      tags: [admin]
+      responses:
+        "200":
+          description: Agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Agent" }
+    post:
+      operationId: createAgent
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAgentBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Agent" }
+
+  /admin/pool-weeks:
+    get:
+      operationId: listPoolWeeks
+      tags: [admin]
+      responses:
+        "200":
+          description: Pool weeks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PoolWeek" }
+    post:
+      operationId: createPoolWeek
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePoolWeekBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolWeek" }
+  /admin/pool-weeks/{id}:
+    get:
+      operationId: getPoolWeek
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Pool week with fixtures and odds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolWeekDetail" }
+    patch:
+      operationId: updatePoolWeekStatus
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePoolWeekStatusBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PoolWeek" }
+
+  /admin/pool-weeks/{id}/fixtures:
+    put:
+      operationId: setFixtures
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetFixturesBody" }
+      responses:
+        "200":
+          description: Fixtures saved
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Fixture" }
+
+  /admin/fixtures/{id}/status:
+    patch:
+      operationId: updateFixtureStatus
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateFixtureStatusBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Fixture" }
+
+  /admin/pool-weeks/{id}/odds:
+    put:
+      operationId: setWeekOdds
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetWeekOddsBody" }
+      responses:
+        "200":
+          description: Odds saved
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WeekOdds" }
+
+  /admin/pool-weeks/{id}/results:
+    post:
+      operationId: submitWeekResults
+      tags: [admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmitResultsBody" }
+      responses:
+        "200":
+          description: Settled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SettlementSummary" }
+
+  # ---------- AGENT ----------
+  /agent/stats:
+    get:
+      operationId: getAgentStats
+      tags: [agent]
+      responses:
+        "200":
+          description: Agent dashboard stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentStats" }
+  /agent/cashiers:
+    get:
+      operationId: listCashiers
+      tags: [agent]
+      responses:
+        "200":
+          description: Cashiers under this agent
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Cashier" }
+    post:
+      operationId: createCashier
+      tags: [agent]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCashierBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cashier" }
+
+  # ---------- CASHIER ----------
+  /cashier/active-weeks:
+    get:
+      operationId: getActiveWeeksForCashier
+      tags: [cashier]
+      responses:
+        "200":
+          description: Open pool weeks the cashier can sell
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CashierWeek" }
+  /cashier/weeks/{id}:
+    get:
+      operationId: getCashierWeekDetail
+      tags: [cashier]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Week with fixture statuses (no team names) and odds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CashierWeekDetail" }
+  /cashier/calculate:
+    post:
+      operationId: calculateBet
+      tags: [cashier]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CalculateBetBody" }
+      responses:
+        "200":
+          description: Computed lines and per-line stake
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CalculateBetResult" }
+
+  # ---------- TICKETS ----------
+  /tickets:
+    get:
+      operationId: listTickets
+      tags: [tickets]
+      parameters:
+        - { in: query, name: weekId, schema: { type: integer } }
+        - { in: query, name: cashierId, schema: { type: integer } }
+        - { in: query, name: agentId, schema: { type: integer } }
+        - { in: query, name: status, schema: { type: string, enum: [active, cancelled, won, lost] } }
+        - { in: query, name: scope, schema: { type: string, enum: [mine, shop, all] } }
+      responses:
+        "200":
+          description: Tickets visible to current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTicketsResponse"
+    post:
+      operationId: createTicket
+      tags: [tickets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTicketBody" }
+      responses:
+        "201":
+          description: Ticket placed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+        "400":
+          description: Validation failed
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  /tickets/{id}:
+    get:
+      operationId: getTicket
+      tags: [tickets]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Ticket detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+  /tickets/{id}/cancel:
+    post:
+      operationId: cancelTicket
+      tags: [tickets]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ticket" }
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    # ----- Auth -----
+    LoginBody:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+      required: [username, password]
+    AuthUser:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [admin, agent, cashier] }
+        agentId: { type: ["integer", "null"] }
+        cashierId: { type: ["integer", "null"] }
+        shopName: { type: ["string", "null"] }
+      required: [id, username, name, role, agentId, cashierId, shopName]
+
+    # ----- Public -----
+    PublicWeekInfo:
+      type: object
+      properties:
+        week:
+          oneOf:
+            - { $ref: "#/components/schemas/PoolWeek" }
+            - type: "null"
+        totalAgents: { type: integer }
+        totalShops: { type: integer }
+      required: [week, totalAgents, totalShops]
+    AgentApplicationBody:
+      type: object
+      properties:
+        shopName: { type: string }
+        location: { type: string }
+        phone: { type: string }
+        email: { type: string }
+      required: [shopName, location, phone, email]
+    AgentApplication:
+      type: object
+      properties:
+        id: { type: integer }
+        shopName: { type: string }
+        location: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+      required: [id, shopName, location, phone, email, status, createdAt]
+    ApproveAgentBody:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+      required: [username, password]
+
+    # ----- Admin / domain -----
+    AdminStats:
+      type: object
+      properties:
+        agents: { type: integer }
+        cashiers: { type: integer }
+        pendingApplications: { type: integer }
+        activeWeek:
+          oneOf:
+            - { $ref: "#/components/schemas/PoolWeek" }
+            - type: "null"
+        weekTickets: { type: integer }
+        weekStake: { type: number }
+        weekPayout: { type: number }
+      required: [agents, cashiers, pendingApplications, activeWeek, weekTickets, weekStake, weekPayout]
+
+    Agent:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        username: { type: string }
+        shopName: { type: string }
+        location: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        cashiersCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, username, shopName, location, phone, email, cashiersCount, createdAt]
+    CreateAgentBody:
+      type: object
+      properties:
+        password: { type: string }
+        shopName: { type: string }
+        location: { type: string }
+        phone: { type: string }
+        email: { type: string }
+      required: [password, shopName, location, phone, email]
+
+    Cashier:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        agentId: { type: integer }
+        username: { type: string }
+        name: { type: string }
+        maxStake: { type: number }
+        ticketCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, agentId, username, name, maxStake, ticketCount, createdAt]
+    CreateCashierBody:
+     type: object
+     properties:
+       password: { type: string }
+       name: { type: string }
+       maxStake: { type: number }
+     required: [password, name, maxStake]
+
+    PoolWeek:
+      type: object
+      properties:
+        id: { type: integer }
+        season: { type: integer }
+        weekNumber: { type: integer }
+        status: { type: string, enum: [draft, open, closed, settled] }
+        commissionPercent: { type: number }
+        opensAt: { type: string, format: date-time }
+        closesAt: { type: string, format: date-time }
+        settledAt: { type: ["string", "null"], format: date-time }
+        winningNumbers:
+          type: array
+          items: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, season, weekNumber, status, commissionPercent, opensAt, closesAt, settledAt, winningNumbers, createdAt]
+    CreatePoolWeekBody:
+      type: object
+      properties:
+        season: { type: integer }
+        weekNumber: { type: integer }
+        opensAt: { type: string, format: date-time }
+        closesAt: { type: string, format: date-time }
+        commissionPercent: { type: number }
+      required: [season, weekNumber, opensAt, closesAt, commissionPercent]
+
+    UpdatePoolWeekStatusBody:
+      type: object
+      properties:
+        status: { type: string, enum: [draft, open, closed] }
+      required: [status]
+
+    Fixture:
+      type: object
+      properties:
+        id: { type: integer }
+        weekId: { type: integer }
+        number: { type: integer }
+        homeTeam: { type: string }
+        awayTeam: { type: string }
+        status: { type: string, enum: [open, closed, postponed] }
+      required: [id, weekId, number, homeTeam, awayTeam, status]
+    SetFixturesBody:
+      type: object
+      properties:
+        fixtures:
+          type: array
+          items:
+            type: object
+            properties:
+              number: { type: integer }
+              homeTeam: { type: string }
+              awayTeam: { type: string }
+            required: [number, homeTeam, awayTeam]
+      required: [fixtures]
+    UpdateFixtureStatusBody:
+      type: object
+      properties:
+        status: { type: string, enum: [open, closed, postponed] }
+      required: [status]
+
+    WeekOdds:
+      type: object
+      properties:
+        id: { type: integer }
+        weekId: { type: integer }
+        poolType: { type: string, enum: [single, double, nap, under3, under4, under5, under6] }
+        oddsType: { type: string, enum: [standard, high] }
+        oddsValue: { type: number }
+      required: [id, weekId, poolType, oddsType, oddsValue]
+    SetWeekOddsBody:
+      type: object
+      properties:
+        odds:
+          type: array
+          items:
+            type: object
+            properties:
+              poolType: { type: string, enum: [single, double, nap, under3, under4, under5, under6] }
+              oddsType: { type: string, enum: [standard, high] }
+              oddsValue: { type: number }
+            required: [poolType, oddsType, oddsValue]
+      required: [odds]
+
+    PoolWeekDetail:
+      type: object
+      properties:
+        week: { $ref: "#/components/schemas/PoolWeek" }
+        fixtures:
+          type: array
+          items: { $ref: "#/components/schemas/Fixture" }
+        odds:
+          type: array
+          items: { $ref: "#/components/schemas/WeekOdds" }
+      required: [week, fixtures, odds]
+
+    SubmitResultsBody:
+      type: object
+      properties:
+        winningNumbers:
+          type: array
+          items: { type: integer }
+      required: [winningNumbers]
+    SettlementSummary:
+      type: object
+      properties:
+        weekId: { type: integer }
+        ticketsSettled: { type: integer }
+        ticketsWon: { type: integer }
+        totalStake: { type: number }
+        totalPayout: { type: number }
+      required: [weekId, ticketsSettled, ticketsWon, totalStake, totalPayout]
+
+    AgentStats:
+      type: object
+      properties:
+        cashiers: { type: integer }
+        weekTickets: { type: integer }
+        weekStake: { type: number }
+        weekPayout: { type: number }
+        commissionAmount: { type: number }
+        cashierActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              cashierId: { type: integer }
+              cashierName: { type: string }
+              tickets: { type: integer }
+              stake: { type: number }
+            required: [cashierId, cashierName, tickets, stake]
+      required: [cashiers, weekTickets, weekStake, weekPayout, commissionAmount, cashierActivity]
+
+    CashierWeek:
+      type: object
+      properties:
+        id: { type: integer }
+        weekNumber: { type: integer }
+        status: { type: string }
+        closesAt: { type: string, format: date-time }
+      required: [id, weekNumber, status, closesAt]
+    CashierFixture:
+      type: object
+      properties:
+        number: { type: integer }
+        status: { type: string, enum: [open, closed, postponed] }
+      required: [number, status]
+    CashierWeekDetail:
+      type: object
+      properties:
+        week: { $ref: "#/components/schemas/CashierWeek" }
+        fixtures:
+          type: array
+          items: { $ref: "#/components/schemas/CashierFixture" }
+        odds:
+          type: array
+          items: { $ref: "#/components/schemas/WeekOdds" }
+        maxStake: { type: number }
+      required: [week, fixtures, odds, maxStake]
+
+    CalculateBetBody:
+      type: object
+      properties:
+        weekId: { type: integer }
+        betType: { type: string, enum: [nap, perm] }
+        poolType: { type: string, enum: [single, double, nap, under3, under4, under5, under6] }
+        oddsType: { type: string, enum: [standard, high] }
+        selectedNumbers:
+          type: array
+          items: { type: integer }
+        stake: { type: number }
+      required: [weekId, betType, poolType, oddsType, selectedNumbers, stake]
+    CalculateBetResult:
+      type: object
+      properties:
+        totalLines: { type: integer }
+        perLine: { type: number }
+        oddsValue: { type: number }
+        possibleMaxWinnings: { type: number }
+      required: [totalLines, perLine, oddsValue, possibleMaxWinnings]
+
+    Ticket:
+      type: object
+      properties:
+        id: { type: integer }
+        ticketCode: { type: string }
+        weekId: { type: integer }
+        weekNumber: { type: integer }
+        cashierId: { type: integer }
+        cashierName: { type: string }
+        agentId: { type: integer }
+        shopName: { type: string }
+        betType: { type: string, enum: [nap, perm] }
+        poolType: { type: string, enum: [single, double, nap, under3, under4, under5, under6] }
+        oddsType: { type: string, enum: [standard, high] }
+        oddsValue: { type: number }
+        selectedNumbers:
+          type: array
+          items: { type: integer }
+        totalLines: { type: integer }
+        stake: { type: number }
+        perLine: { type: number }
+        status: { type: string, enum: [active, cancelled, won, lost] }
+        winningLines: { type: integer }
+        winnings: { type: number }
+        createdAt: { type: string, format: date-time }
+      required:
+        - id
+        - ticketCode
+        - weekId
+        - weekNumber
+        - cashierId
+        - cashierName
+        - agentId
+        - shopName
+        - betType
+        - poolType
+        - oddsType
+        - oddsValue
+        - selectedNumbers
+        - totalLines
+        - stake
+        - perLine
+        - status
+        - winningLines
+        - winnings
+        - createdAt
+    CreateTicketBody:
+      type: object
+      properties:
+        weekId: { type: integer }
+        betType: { type: string, enum: [nap, perm] }
+        poolType: { type: string, enum: [single, double, nap, under3, under4, under5, under6] }
+        oddsType: { type: string, enum: [standard, high] }
+        selectedNumbers:
+          type: array
+          items: { type: integer }
+        stake: { type: number }
+      required: [weekId, betType, poolType, oddsType, selectedNumbers, stake]
+    ListTicketsResponse:
+      type: object
+      properties:
+        tickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Ticket"
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - tickets
+        - total
+        - page
+        - pageSize
+        - totalPages

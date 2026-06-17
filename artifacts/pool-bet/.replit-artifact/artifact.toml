@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "UK Football Pool Betting"
+version = "1.0.0"
+id = "artifacts/pool-bet"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22004
+
+[services.development]
+run = "pnpm --filter @workspace/pool-bet run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pool-bet", "run", "build" ]
+publicDir = "artifacts/pool-bet/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22004"
+BASE_PATH = "/"
