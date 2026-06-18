@@ -7,3 +7,4 @@ export * from "./fixtures";
 export * from "./weekOdds";
 export * from "./tickets";
 export * from "./sessions";
+export * from "./managers";

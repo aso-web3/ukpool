@@ -8,7 +8,7 @@ export type PoolType =
   | "under6";
 export type OddsType = "standard" | "high";
 export type BetType = "nap" | "perm";
-export type Role = "admin" | "agent" | "cashier";
+export type Role = "admin" | "manager" | "agent" | "cashier";
 export type FixtureStatus = "open" | "closed" | "postponed";
 export type WeekStatus = "draft" | "open" | "closed" | "settled";
 
