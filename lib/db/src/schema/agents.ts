@@ -12,6 +12,7 @@ export const agentsTable = pgTable("agents", {
   userId: integer("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  managerId: integer("manager_id"),
   shopName: text("shop_name").notNull(),
   location: text("location").notNull(),
   phone: text("phone").notNull(),
