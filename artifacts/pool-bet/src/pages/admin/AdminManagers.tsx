@@ -153,12 +153,12 @@ const onSaveEdit = async () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Shop</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Username</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead className="text-right">Cashiers</TableHead>
+              <TableHead className="text-right">Agents</TableHead>
 	      <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -169,12 +169,12 @@ const onSaveEdit = async () => {
             )}
             {managers?.map((a) => (
               <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.shopName}</TableCell>
+                <TableCell className="font-medium">{a.name}</TableCell>
                 <TableCell className="font-mono text-xs">{a.username}</TableCell>
                 <TableCell>{a.location}</TableCell>
                 <TableCell className="font-mono text-xs">{a.phone}</TableCell>
                 <TableCell className="text-xs">{a.email}</TableCell>
-                <TableCell className="text-right tabular-nums">{a.cashiersCount}</TableCell>
+                <TableCell className="text-right tabular-nums">0</TableCell>
 <TableCell className="text-right">
   <Button
     size="sm"
@@ -184,7 +184,7 @@ const onSaveEdit = async () => {
   setEditForm({
     username: a.username,
     password: "",
-    shopName: a.shopName,
+    name: a.name,
     location: a.location,
     phone: a.phone,
     email: a.email,
@@ -269,7 +269,7 @@ const onSaveEdit = async () => {
 <Dialog open={editOpen} onOpenChange={setEditOpen}>
   <DialogContent>
     <DialogHeader>
-      <DialogTitle>Edit Agent</DialogTitle>
+      <DialogTitle>Edit Manager</DialogTitle>
     </DialogHeader>
 
     <div className="space-y-4">
@@ -284,13 +284,13 @@ const onSaveEdit = async () => {
       </div>
 
       <div>
-        <Label>Shop Name</Label>
-        <Input
-          value={editForm.shopName}
-          onChange={(e) =>
-            setEditForm({ ...editForm, shopName: e.target.value })
-          }
-        />
+        <Label>Manager Name</Label>
+<Input
+  value={editForm.name}
+  onChange={(e) =>
+    setEditForm({ ...editForm, name: e.target.value })
+  }
+/>
       </div>
 
       <div>

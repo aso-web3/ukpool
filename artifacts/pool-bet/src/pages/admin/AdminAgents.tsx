@@ -14,13 +14,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { useEffect } from "react";
 
 export default function AdminAgents() {
   const queryClient = useQueryClient();
   const { data: agents, isLoading } = useListAgents();
   const create = useCreateAgent();
+  const [managers, setManagers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ password: "", shopName: "", location: "", phone: "", email: "" });
+  const [form, setForm] = useState({ password: "", shopName: "", location: "", phone: "", email: "",managerId: "" });
 const [editOpen, setEditOpen] = useState(false);
 const [editingAgent, setEditingAgent] = useState<any>(null);
 const [savingEdit, setSavingEdit] = useState(false);
@@ -32,8 +34,31 @@ const [editForm, setEditForm] = useState({
   location: "",
   phone: "",
   email: "",
+  managerId: "",
   active: true,
 });
+
+useEffect(() => {
+  const loadManagers = async () => {
+    try {
+      const res = await fetch("/api/admin/managers", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      console.log("Managers:", data);
+
+      if (Array.isArray(data)) {
+        setManagers(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadManagers();
+}, []);
 
   const onCreate = () => {
   if (
@@ -41,7 +66,8 @@ const [editForm, setEditForm] = useState({
     !form.shopName ||
     !form.location ||
     !form.phone ||
-    !form.email
+    !form.email ||
+    !form.managerId
   ) {
     toast.error("All fields required");
     return;
@@ -59,6 +85,7 @@ const [editForm, setEditForm] = useState({
           location: "",
           phone: "",
           email: "",
+	  managerId: "",
         });
 
         queryClient.invalidateQueries({
@@ -210,6 +237,34 @@ const onSaveEdit = async () => {
       }
     />
   </div>
+
+<div className="col-span-2">
+  <Label>Manager</Label>
+
+  <select
+    className="w-full border rounded-md h-10 px-3"
+    value={form.managerId}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        managerId: e.target.value,
+      })
+    }
+  >
+    <option value="">
+      Select Manager
+    </option>
+
+    {managers.map((m) => (
+      <option
+        key={m.id}
+        value={m.id}
+      >
+        {m.username} - {m.name}
+      </option>
+    ))}
+  </select>
+</div>
 
   <div>
     <Label>Phone</Label>
