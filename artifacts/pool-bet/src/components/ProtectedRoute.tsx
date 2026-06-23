@@ -27,6 +27,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   if (!allowedRoles.includes(user.role)) {
     if (user.role === "admin") setLocation("/admin");
+    else if (user.role === "manager") setLocation("/manager");
     else if (user.role === "agent") setLocation("/agent");
     else if (user.role === "cashier") setLocation("/cashier");
     else setLocation("/");

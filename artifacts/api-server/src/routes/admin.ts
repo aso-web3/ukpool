@@ -4,6 +4,7 @@ import { and, asc, desc, eq, sql, inArray } from "drizzle-orm";
 import {
   db,
   usersTable,
+  managersTable,
   agentsTable,
   cashiersTable,
   agentApplicationsTable,
@@ -751,5 +752,83 @@ if (!currentOdds) {
     });
   },
 );
+
+// ----- Managers -----
+router.get("/admin/managers", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: managersTable.id,
+      userId: managersTable.userId,
+      username: usersTable.username,
+      name: usersTable.name,
+      phone: managersTable.phone,
+      email: managersTable.email,
+      location: managersTable.location,
+      isActive: usersTable.isActive,
+      createdAt: managersTable.createdAt,
+    })
+    .from(managersTable)
+    .innerJoin(
+      usersTable,
+      eq(usersTable.id, managersTable.userId)
+    )
+    .orderBy(desc(managersTable.createdAt));
+
+  res.json(rows);
+});
+
+router.post("/admin/managers", async (req, res): Promise<void> => {
+  const { password, name, location, phone, email } = req.body ?? {};
+
+  if (
+    !password ||
+    !name ||
+    !location ||
+    !phone ||
+    !email
+  ) {
+    res.status(400).json({
+      error: "All fields are required",
+    });
+    return;
+  }
+
+  const [{ count }] = await db
+    .select({
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(managersTable);
+
+  const username =
+    `MGR${String(count + 1).padStart(3, "0")}`;
+
+  const user = await createUserWithPassword({
+    username,
+    password,
+    name,
+    role: "manager",
+  });
+
+  const [manager] = await db
+    .insert(managersTable)
+    .values({
+      userId: user.id,
+      location,
+      phone,
+      email,
+    })
+    .returning();
+
+  res.status(201).json({
+    id: manager.id,
+    userId: manager.userId,
+    username: user.username,
+    name: user.name,
+    location: manager.location,
+    phone: manager.phone,
+    email: manager.email,
+    createdAt: manager.createdAt,
+  });
+});
 
 export default router;

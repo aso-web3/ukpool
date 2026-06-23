@@ -186,6 +186,7 @@ function getNavItems(role: AuthUserRole) {
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
         { href: "/admin/applications", label: "Applications", icon: FileText },
         { href: "/admin/agents", label: "Agents", icon: Users },
+	{ href: "/admin/managers", label: "Managers", icon: Users },
         { href: "/admin/weeks", label: "Pool Weeks", icon: Calendar },
 	{ href: "/admin/tickets", label: "Tickets", icon: Ticket },
       ];

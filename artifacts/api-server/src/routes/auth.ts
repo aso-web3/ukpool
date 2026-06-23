@@ -122,7 +122,7 @@ export async function createUserWithPassword(input: {
   username: string;
   password: string;
   name: string;
-  role: "admin" | "agent" | "cashier";
+  role: "admin" | "manager" | "agent" | "cashier";
 }) {
   const passwordHash = await bcrypt.hash(input.password, 10);
   const [user] = await db

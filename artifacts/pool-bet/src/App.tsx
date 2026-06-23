@@ -11,8 +11,10 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTickets from "@/pages/admin/AdminTickets";
 import AdminApplications from "@/pages/admin/AdminApplications";
 import AdminAgents from "@/pages/admin/AdminAgents";
+import AdminManagers from "@/pages/admin/AdminManagers";
 import AdminWeeks from "@/pages/admin/AdminWeeks";
 import AdminWeekDetail from "@/pages/admin/AdminWeekDetail";
+import ManagerDashboard from "@/pages/manager/ManagerDashboard";
 import AgentDashboard from "@/pages/agent/AgentDashboard";
 import AgentCashiers from "@/pages/agent/AgentCashiers";
 import AgentTickets from "@/pages/agent/AgentTickets";
@@ -56,12 +58,15 @@ function Router() {
 </Route>
       <Route path="/admin/applications">{() => <Protected roles={["admin"]}><AdminApplications /></Protected>}</Route>
       <Route path="/admin/agents">{() => <Protected roles={["admin"]}><AdminAgents /></Protected>}</Route>
+      <Route path="/admin/managers">{() => <Protected roles={["admin", "manager"]}><AdminManagers /></Protected>}</Route>
       <Route path="/admin/weeks">{() => <Protected roles={["admin"]}><AdminWeeks /></Protected>}</Route>
       <Route path="/admin/weeks/:id">{() => <Protected roles={["admin"]}><AdminWeekDetail /></Protected>}</Route>
 
       <Route path="/agent">{() => <Protected roles={["agent"]}><AgentDashboard /></Protected>}</Route>
       <Route path="/agent/cashiers">{() => <Protected roles={["agent"]}><AgentCashiers /></Protected>}</Route>
       <Route path="/agent/tickets">{() => <Protected roles={["agent"]}><AgentTickets /></Protected>}</Route>
+
+      <Route path="/manager">{() => <Protected roles={["manager"]}><ManagerDashboard /></Protected>}</Route>
 
       <Route path="/cashier">{() => <Protected roles={["cashier"]}><CashierDashboard /></Protected>}</Route>
       <Route path="/cashier/sell/:weekId">{() => <Protected roles={["cashier"]}><CashierSell /></Protected>}</Route>

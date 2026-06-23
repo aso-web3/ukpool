@@ -25,8 +25,9 @@ export default function Login() {
           await queryClient.invalidateQueries();
           toast.success(`Welcome, ${user.name}`);
           if (user.role === "admin") setLocation("/admin");
-          else if (user.role === "agent") setLocation("/agent");
-          else setLocation("/cashier");
+	  else if (user.role === "manager") setLocation("/manager");
+	  else if (user.role === "agent") setLocation("/agent");
+	  else if (user.role === "cashier") setLocation("/cashier");
         },
         onError: () => toast.error("Invalid username or password"),
       }
