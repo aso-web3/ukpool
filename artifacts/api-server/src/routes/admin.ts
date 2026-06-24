@@ -200,6 +200,7 @@ router.patch("/admin/agents/:id", async (req, res): Promise<void> => {
     location,
     phone,
     email,
+    managerId,
     active,
   } = req.body ?? {};
 
@@ -230,6 +231,7 @@ router.patch("/admin/agents/:id", async (req, res): Promise<void> => {
       ...(location && { location }),
       ...(phone && { phone }),
       ...(email && { email }),
+      ...(managerId && { managerId: Number(managerId) }),
     })
     .where(eq(agentsTable.id, agentId));
 
@@ -289,6 +291,7 @@ router.get("/admin/agents", async (_req, res): Promise<void> => {
     .select({
       id: agentsTable.id,
       userId: agentsTable.userId,
+      managerId: agentsTable.managerId,
       username: usersTable.username,
       shopName: agentsTable.shopName,
       location: agentsTable.location,
@@ -335,6 +338,7 @@ const user = await createUserWithPassword({
     .insert(agentsTable)
     .values({
       userId: user.id,
+      managerId: parsed.data.managerId,
       shopName: parsed.data.shopName,
       location: parsed.data.location,
       phone: parsed.data.phone,
@@ -766,11 +770,20 @@ router.get("/admin/managers", async (_req, res): Promise<void> => {
       location: managersTable.location,
       isActive: usersTable.isActive,
       createdAt: managersTable.createdAt,
+      agentsCount: sql<number>`cast(count(${agentsTable.id}) as int)`,
     })
     .from(managersTable)
     .innerJoin(
       usersTable,
       eq(usersTable.id, managersTable.userId)
+    )
+    .leftJoin(
+      agentsTable,
+      eq(agentsTable.managerId, managersTable.id)
+    )
+    .groupBy(
+      managersTable.id,
+      usersTable.id
     )
     .orderBy(desc(managersTable.createdAt));
 

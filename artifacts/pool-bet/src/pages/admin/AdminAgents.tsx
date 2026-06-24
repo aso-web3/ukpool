@@ -19,6 +19,7 @@ import { useEffect } from "react";
 export default function AdminAgents() {
   const queryClient = useQueryClient();
   const { data: agents, isLoading } = useListAgents();
+  console.log("Agents:", agents);
   const create = useCreateAgent();
   const [managers, setManagers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -156,6 +157,7 @@ const onSaveEdit = async () => {
             <TableRow>
               <TableHead>Shop</TableHead>
               <TableHead>Username</TableHead>
+	      <TableHead>Manager</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
@@ -172,6 +174,12 @@ const onSaveEdit = async () => {
               <TableRow key={a.id}>
                 <TableCell className="font-medium">{a.shopName}</TableCell>
                 <TableCell className="font-mono text-xs">{a.username}</TableCell>
+		<TableCell>
+  {a.managerId
+    ? managers.find((m) => m.id === a.managerId)?.username ??
+      "Unknown"
+    : "Unassigned"}
+</TableCell>
                 <TableCell>{a.location}</TableCell>
                 <TableCell className="font-mono text-xs">{a.phone}</TableCell>
                 <TableCell className="text-xs">{a.email}</TableCell>
@@ -189,6 +197,7 @@ const onSaveEdit = async () => {
     location: a.location,
     phone: a.phone,
     email: a.email,
+    managerId: a.managerId?.toString() ?? "",
     active: true,
   });
   setEditOpen(true);
@@ -319,6 +328,34 @@ const onSaveEdit = async () => {
           }
         />
       </div>
+
+<div>
+  <Label>Manager</Label>
+
+  <select
+    className="w-full border rounded-md h-10 px-3"
+    value={editForm.managerId}
+    onChange={(e) =>
+      setEditForm({
+        ...editForm,
+        managerId: e.target.value,
+      })
+    }
+  >
+    <option value="">
+      Unassigned
+    </option>
+
+    {managers.map((m) => (
+      <option
+        key={m.id}
+        value={m.id}
+      >
+        {m.username} - {m.name}
+      </option>
+    ))}
+  </select>
+</div>
 
       <div>
         <Label>Location</Label>

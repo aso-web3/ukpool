@@ -174,7 +174,7 @@ const onSaveEdit = async () => {
                 <TableCell>{a.location}</TableCell>
                 <TableCell className="font-mono text-xs">{a.phone}</TableCell>
                 <TableCell className="text-xs">{a.email}</TableCell>
-                <TableCell className="text-right tabular-nums">0</TableCell>
+                <TableCell className="text-right tabular-nums">{a.agentsCount ?? 0}</TableCell>
 <TableCell className="text-right">
   <Button
     size="sm"

@@ -161,6 +161,7 @@ export const CreateAgentBody = zod.object({
   location: zod.string(),
   phone: zod.string(),
   email: zod.string(),
+  managerId: zod.coerce.number(),
 });
 
 export const ListPoolWeeksResponseItem = zod.object({
