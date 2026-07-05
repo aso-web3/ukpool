@@ -129,9 +129,7 @@ const onSaveEdit = async () => {
     toast.success("Agent updated");
     setEditOpen(false);
 
-    queryClient.invalidateQueries({
-      queryKey: getListAgentsQueryKey(),
-    });
+    window.location.reload();
 
   } catch {
     toast.error("Something went wrong");

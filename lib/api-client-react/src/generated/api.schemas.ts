@@ -22,6 +22,7 @@ export type AuthUserRole = (typeof AuthUserRole)[keyof typeof AuthUserRole];
 
 export const AuthUserRole = {
   admin: "admin",
+  manager: "manager",
   agent: "agent",
   cashier: "cashier",
 } as const;
@@ -113,6 +114,8 @@ export interface AdminStats {
 export interface Agent {
   id: number;
   userId: number;
+  /** @nullable */
+  managerId?: number | null;
   username: string;
   shopName: string;
   location: string;
@@ -128,6 +131,7 @@ export interface CreateAgentBody {
   location: string;
   phone: string;
   email: string;
+  managerId: number;
 }
 
 export interface Cashier {

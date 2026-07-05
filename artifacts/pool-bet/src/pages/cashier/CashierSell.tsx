@@ -42,6 +42,8 @@ const POOL_LABELS: Record<PoolType, string> = {
   under6: "Under 6",
 };
 
+const CASHIER_SELL_PREFS_KEY = "cashier-sell-preferences";
+
 export default function CashierSell() {
   const [, params] = useRoute("/cashier/sell/:weekId");
   const [, setLocation] = useLocation();
@@ -51,11 +53,35 @@ export default function CashierSell() {
   const calculate = useCalculateBet();
   const createTicket = useCreateTicket();
 
-  const [betType, setBetType] = useState<BetType>("nap");
-  const [poolType, setPoolType] = useState<PoolType>("nap");
-  const [oddsType, setOddsType] = useState<OddsType>("standard");
-  const [selected, setSelected] = useState<number[]>([]);
-  const [stake, setStake] = useState<number>(100);
+  const savedPrefs = (() => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return JSON.parse(
+      sessionStorage.getItem(CASHIER_SELL_PREFS_KEY) ?? "null"
+    );
+  } catch {
+    return null;
+  }
+})();
+
+const [betType, setBetType] = useState<BetType>(
+  savedPrefs?.betType ?? "nap"
+);
+
+const [poolType, setPoolType] = useState<PoolType>(
+  savedPrefs?.poolType ?? "nap"
+);
+
+const [oddsType, setOddsType] = useState<OddsType>(
+  savedPrefs?.oddsType ?? "standard"
+);
+
+const [selected, setSelected] = useState<number[]>([]);
+
+const [stake, setStake] = useState<number>(
+  savedPrefs?.stake ?? 100
+);
   const [calc, setCalc] = useState<{ totalLines: number; perLine: number; oddsValue: number; possibleMaxWinnings: number } | null>(null);
   const [receipt, setReceipt] = useState<any | null>(null);
 
@@ -74,6 +100,18 @@ export default function CashierSell() {
     setPoolType("single");
   }
 }, [betType]);
+
+useEffect(() => {
+  sessionStorage.setItem(
+    CASHIER_SELL_PREFS_KEY,
+    JSON.stringify({
+      betType,
+      poolType,
+      oddsType,
+      stake,
+    })
+  );
+}, [betType, poolType, oddsType, stake]);
 
   const validationError = validateSelection(poolType, selected.length, betType);
 
@@ -136,7 +174,6 @@ export default function CashierSell() {
 
   const reset = () => {
     setSelected([]);
-    setStake(100);
     setCalc(null);
   };
 

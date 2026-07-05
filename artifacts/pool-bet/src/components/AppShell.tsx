@@ -1,7 +1,18 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetMe, useLogout, AuthUserRole } from "@workspace/api-client-react";
-import { LogOut, Home, Users, FileText, Calendar, LayoutDashboard, Receipt, Ticket } from "lucide-react";
+import {
+  LogOut,
+  Home,
+  Users,
+  FileText,
+  Calendar,
+  LayoutDashboard,
+  Receipt,
+  Ticket,
+  BarChart3,
+  CreditCard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -189,12 +200,21 @@ function getNavItems(role: AuthUserRole) {
 	{ href: "/admin/managers", label: "Managers", icon: Users },
         { href: "/admin/weeks", label: "Pool Weeks", icon: Calendar },
 	{ href: "/admin/tickets", label: "Tickets", icon: Ticket },
+	{ href: "/admin/reports", label: "Reports", icon: BarChart3 },
       ];
     case "agent":
       return [
         { href: "/agent", label: "Dashboard", icon: LayoutDashboard },
         { href: "/agent/cashiers", label: "Cashiers", icon: Users },
         { href: "/agent/tickets", label: "Tickets", icon: Receipt },
+      ];
+    case "manager":
+      return [
+        { href: "/manager", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/manager/agents", label: "My Agents", icon: Users },
+        { href: "/manager/tickets", label: "Tickets", icon: Receipt },
+        { href: "/manager/collections", label: "Collections", icon: CreditCard },
+        { href: "/manager/reports", label: "Reports", icon: BarChart3 },
       ];
     case "cashier":
       return [

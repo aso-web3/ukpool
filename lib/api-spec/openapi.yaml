@@ -1,3 +1,4 @@
+
 openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
@@ -475,7 +476,7 @@ components:
         id: { type: integer }
         username: { type: string }
         name: { type: string }
-        role: { type: string, enum: [admin, agent, cashier] }
+        role: { type: string, enum: [admin, manager, agent, cashier] }
         agentId: { type: ["integer", "null"] }
         cashierId: { type: ["integer", "null"] }
         shopName: { type: ["string", "null"] }
@@ -539,6 +540,7 @@ components:
       properties:
         id: { type: integer }
         userId: { type: integer }
+        managerId: { type: ["integer", "null"] }
         username: { type: string }
         shopName: { type: string }
         location: { type: string }
@@ -555,7 +557,8 @@ components:
         location: { type: string }
         phone: { type: string }
         email: { type: string }
-      required: [password, shopName, location, phone, email]
+        managerId: { type: integer }
+      required: [password, shopName, location, phone, email, managerId]
 
     Cashier:
       type: object

@@ -23,7 +23,7 @@ export default function AdminAgents() {
   const create = useCreateAgent();
   const [managers, setManagers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ password: "", shopName: "", location: "", phone: "", email: "",managerId: "" });
+  const [form, setForm] = useState({ password: "", shopName: "", location: "", phone: "", email: "", managerId: 0 });
 const [editOpen, setEditOpen] = useState(false);
 const [editingAgent, setEditingAgent] = useState<any>(null);
 const [savingEdit, setSavingEdit] = useState(false);
@@ -35,7 +35,7 @@ const [editForm, setEditForm] = useState({
   location: "",
   phone: "",
   email: "",
-  managerId: "",
+  managerId: 0,
   active: true,
 });
 
@@ -86,7 +86,7 @@ useEffect(() => {
           location: "",
           phone: "",
           email: "",
-	  managerId: "",
+	  managerId: 0,
         });
 
         queryClient.invalidateQueries({
@@ -197,7 +197,7 @@ const onSaveEdit = async () => {
     location: a.location,
     phone: a.phone,
     email: a.email,
-    managerId: a.managerId?.toString() ?? "",
+    managerId: a.managerId ?? 0,
     active: true,
   });
   setEditOpen(true);
@@ -256,7 +256,7 @@ const onSaveEdit = async () => {
     onChange={(e) =>
       setForm({
         ...form,
-        managerId: e.target.value,
+        managerId: Number(e.target.value),
       })
     }
   >
@@ -338,7 +338,7 @@ const onSaveEdit = async () => {
     onChange={(e) =>
       setEditForm({
         ...editForm,
-        managerId: e.target.value,
+        managerId: Number(e.target.value),
       })
     }
   >

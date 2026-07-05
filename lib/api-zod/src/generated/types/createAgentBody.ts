@@ -12,4 +12,5 @@ export interface CreateAgentBody {
   location: string;
   phone: string;
   email: string;
+  managerId: number;
 }

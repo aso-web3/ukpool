@@ -23,7 +23,7 @@ export const LoginResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
   name: zod.string(),
-  role: zod.enum(["admin", "agent", "cashier"]),
+  role: zod.enum(["admin", "manager", "agent", "cashier"]),
   agentId: zod.number().nullable(),
   cashierId: zod.number().nullable(),
   shopName: zod.string().nullable(),
@@ -33,7 +33,7 @@ export const GetMeResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
   name: zod.string(),
-  role: zod.enum(["admin", "agent", "cashier"]),
+  role: zod.enum(["admin", "manager", "agent", "cashier"]),
   agentId: zod.number().nullable(),
   cashierId: zod.number().nullable(),
   shopName: zod.string().nullable(),
@@ -119,6 +119,7 @@ export const ApproveAgentApplicationBody = zod.object({
 export const ApproveAgentApplicationResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
+  managerId: zod.number().nullish(),
   username: zod.string(),
   shopName: zod.string(),
   location: zod.string(),
@@ -145,6 +146,7 @@ export const RejectAgentApplicationResponse = zod.object({
 export const ListAgentsResponseItem = zod.object({
   id: zod.number(),
   userId: zod.number(),
+  managerId: zod.number().nullish(),
   username: zod.string(),
   shopName: zod.string(),
   location: zod.string(),
@@ -161,7 +163,7 @@ export const CreateAgentBody = zod.object({
   location: zod.string(),
   phone: zod.string(),
   email: zod.string(),
-  managerId: zod.coerce.number(),
+  managerId: zod.number(),
 });
 
 export const ListPoolWeeksResponseItem = zod.object({

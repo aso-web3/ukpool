@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
   ticketsTable,
@@ -8,6 +8,7 @@ import {
   weekOddsTable,
   cashiersTable,
   agentsTable,
+  managersTable,
   usersTable,
 } from "@workspace/db";
 import {
@@ -92,59 +93,150 @@ if (effectiveWeekId === undefined) {
   if (effectiveWeekId !== undefined) conditions.push(eq(ticketsTable.weekId, effectiveWeekId));
   if (status !== undefined) conditions.push(eq(ticketsTable.status, status));
 
-  if (auth.role === "cashier") {
-    if (!auth.cashierId) {
-      res.json([]);
-      return;
-    }
-    conditions.push(eq(ticketsTable.cashierId, auth.cashierId));
-    if (cashierId !== undefined && cashierId !== auth.cashierId) {
-      res.json([]);
-      return;
-    }
-  } else if (auth.role === "agent") {
-    if (!auth.agentId) {
-      res.json([]);
-      return;
-    }
-    conditions.push(eq(ticketsTable.agentId, auth.agentId));
-    if (cashierId !== undefined) {
-      conditions.push(eq(ticketsTable.cashierId, cashierId));
-    }
-    if (scope === "mine") {
-      // No-op; "mine" for agents = their shop, already filtered.
-    }
-  } else {
-    // admin
-    if (agentId !== undefined) conditions.push(eq(ticketsTable.agentId, agentId));
-    if (cashierId !== undefined)
-      conditions.push(eq(ticketsTable.cashierId, cashierId));
+if (auth.role === "cashier") {
+
+  if (!auth.cashierId) {
+    res.json([]);
+    return;
   }
+
+  conditions.push(
+    eq(ticketsTable.cashierId, auth.cashierId)
+  );
+
+  if (
+    cashierId !== undefined &&
+    cashierId !== auth.cashierId
+  ) {
+    res.json([]);
+    return;
+  }
+
+} else if (auth.role === "agent") {
+
+  if (!auth.agentId) {
+    res.json([]);
+    return;
+  }
+
+  conditions.push(
+    eq(ticketsTable.agentId, auth.agentId)
+  );
+
+  if (cashierId !== undefined) {
+    conditions.push(
+      eq(ticketsTable.cashierId, cashierId)
+    );
+  }
+
+} else if (auth.role === "manager") {
+
+  const [manager] = await db
+    .select()
+    .from(managersTable)
+    .where(
+      eq(managersTable.userId, auth.userId)
+    );
+
+  if (!manager) {
+    res.json([]);
+    return;
+  }
+
+  const managerAgents = await db
+    .select({
+      id: agentsTable.id,
+    })
+    .from(agentsTable)
+    .where(
+      eq(agentsTable.managerId, manager.id)
+    );
+
+  const agentIds = managerAgents.map(
+    (a) => a.id
+  );
+
+  if (agentIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  conditions.push(
+  inArray(
+    ticketsTable.agentId,
+    agentIds
+  )
+);
+
+if (
+  agentId !== undefined &&
+  agentIds.includes(agentId)
+) {
+  conditions.push(
+    eq(ticketsTable.agentId, agentId)
+  );
+}
+
+} else {
+
+  if (agentId !== undefined) {
+    conditions.push(
+      eq(ticketsTable.agentId, agentId)
+    );
+  }
+
+  if (cashierId !== undefined) {
+    conditions.push(
+      eq(ticketsTable.cashierId, cashierId)
+    );
+  }
+}
 
 const [{ total }] = await db
   .select({
     total: db.$count(ticketsTable),
   })
   .from(ticketsTable)
-  .where(conditions.length > 0 ? and(...conditions) : undefined);
+  .where(
+    conditions.length > 0
+      ? and(...conditions)
+      : undefined
+  );
 
-  const rows = await db
-    .select({
-      ticket: ticketsTable,
-      weekNumber: poolWeeksTable.weekNumber,
-      cashierName: usersTable.name,
-      shopName: agentsTable.shopName,
-    })
-    .from(ticketsTable)
-    .innerJoin(poolWeeksTable, eq(poolWeeksTable.id, ticketsTable.weekId))
-    .innerJoin(cashiersTable, eq(cashiersTable.id, ticketsTable.cashierId))
-    .innerJoin(usersTable, eq(usersTable.id, cashiersTable.userId))
-    .innerJoin(agentsTable, eq(agentsTable.id, ticketsTable.agentId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(ticketsTable.createdAt))
-    .limit(pageSize)
-    .offset(offset);
-  res.json({
+const rows = await db
+  .select({
+    ticket: ticketsTable,
+    weekNumber: poolWeeksTable.weekNumber,
+    cashierName: usersTable.name,
+    shopName: agentsTable.shopName,
+  })
+  .from(ticketsTable)
+  .innerJoin(
+    poolWeeksTable,
+    eq(poolWeeksTable.id, ticketsTable.weekId)
+  )
+  .innerJoin(
+    cashiersTable,
+    eq(cashiersTable.id, ticketsTable.cashierId)
+  )
+  .innerJoin(
+    usersTable,
+    eq(usersTable.id, cashiersTable.userId)
+  )
+  .innerJoin(
+    agentsTable,
+    eq(agentsTable.id, ticketsTable.agentId)
+  )
+  .where(
+    conditions.length > 0
+      ? and(...conditions)
+      : undefined
+  )
+  .orderBy(desc(ticketsTable.createdAt))
+  .limit(pageSize)
+  .offset(offset);
+
+res.json({
   tickets: rows.map(shapeTicket),
   total,
   page,

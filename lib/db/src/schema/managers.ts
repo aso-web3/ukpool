@@ -23,6 +23,10 @@ export const managersTable = pgTable("managers", {
 
   location: text("location").notNull(),
 
+  commissionPercent: integer("commission_percent")
+  .notNull()
+  .default(0),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

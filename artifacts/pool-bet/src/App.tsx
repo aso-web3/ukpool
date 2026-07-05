@@ -9,12 +9,17 @@ import PublicHome from "@/pages/PublicHome";
 import Login from "@/pages/Login";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminTickets from "@/pages/admin/AdminTickets";
+import AdminReports from "@/pages/admin/AdminReports";
 import AdminApplications from "@/pages/admin/AdminApplications";
 import AdminAgents from "@/pages/admin/AdminAgents";
 import AdminManagers from "@/pages/admin/AdminManagers";
 import AdminWeeks from "@/pages/admin/AdminWeeks";
 import AdminWeekDetail from "@/pages/admin/AdminWeekDetail";
 import ManagerDashboard from "@/pages/manager/ManagerDashboard";
+import ManagerAgents from "@/pages/manager/ManagerAgents";
+import ManagerTickets from "@/pages/manager/ManagerTickets";
+import ManagerCollections from "@/pages/manager/ManagerCollections";
+import ManagerReports from "@/pages/manager/ManagerReports";
 import AgentDashboard from "@/pages/agent/AgentDashboard";
 import AgentCashiers from "@/pages/agent/AgentCashiers";
 import AgentTickets from "@/pages/agent/AgentTickets";
@@ -34,7 +39,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function Protected({ roles, children }: { roles: ("admin" | "agent" | "cashier")[]; children: React.ReactNode }) {
+function Protected({ roles, children }: { roles: ("admin" | "manager" | "agent" | "cashier")[]; children: React.ReactNode }) {
   return (
     <ProtectedRoute allowedRoles={roles}>
       <AppShell>{children}</AppShell>
@@ -56,6 +61,7 @@ function Router() {
     </Protected>
   )}
 </Route>
+      <Route path="/admin/reports">{() => <Protected roles={["admin"]}><AdminReports /></Protected>}</Route>
       <Route path="/admin/applications">{() => <Protected roles={["admin"]}><AdminApplications /></Protected>}</Route>
       <Route path="/admin/agents">{() => <Protected roles={["admin"]}><AdminAgents /></Protected>}</Route>
       <Route path="/admin/managers">{() => <Protected roles={["admin", "manager"]}><AdminManagers /></Protected>}</Route>
@@ -67,6 +73,10 @@ function Router() {
       <Route path="/agent/tickets">{() => <Protected roles={["agent"]}><AgentTickets /></Protected>}</Route>
 
       <Route path="/manager">{() => <Protected roles={["manager"]}><ManagerDashboard /></Protected>}</Route>
+      <Route path="/manager/agents">{() => <Protected roles={["manager"]}><ManagerAgents /></Protected>}</Route>
+      <Route path="/manager/tickets">{() => <Protected roles={["manager"]}><ManagerTickets /></Protected>}</Route>
+      <Route path="/manager/collections">{() => <Protected roles={["manager"]}><ManagerCollections /></Protected>}</Route>
+      <Route path="/manager/reports">{() => <Protected roles={["manager"]}><ManagerReports /></Protected>}</Route>
 
       <Route path="/cashier">{() => <Protected roles={["cashier"]}><CashierDashboard /></Protected>}</Route>
       <Route path="/cashier/sell/:weekId">{() => <Protected roles={["cashier"]}><CashierSell /></Protected>}</Route>

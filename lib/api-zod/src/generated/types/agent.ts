@@ -9,6 +9,8 @@
 export interface Agent {
   id: number;
   userId: number;
+  /** @nullable */
+  managerId?: number | null;
   username: string;
   shopName: string;
   location: string;

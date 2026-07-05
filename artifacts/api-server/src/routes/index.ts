@@ -6,6 +6,7 @@ import adminRouter from "./admin";
 import agentRouter from "./agent";
 import cashierRouter from "./cashier";
 import ticketsRouter from "./tickets";
+import managerRouter from "./manager";
 
 const router: IRouter = Router();
 
@@ -14,6 +15,7 @@ router.use(authRouter);
 router.use(publicRouter);
 router.use(adminRouter);
 router.use(agentRouter);
+router.use(managerRouter);
 router.use(cashierRouter);
 router.use(ticketsRouter);
 

@@ -8,3 +8,4 @@ export * from "./weekOdds";
 export * from "./tickets";
 export * from "./sessions";
 export * from "./managers";
+export * from "./agentCollections";
