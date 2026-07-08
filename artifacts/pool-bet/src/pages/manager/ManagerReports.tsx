@@ -104,7 +104,7 @@ export default function ManagerReports() {
                 key={w.id}
                 value={w.id}
               >
-                Week {w.weekNumber}
+                {w.season}/{w.season + 1} - Week {w.weekNumber}
               </option>
             ))}
           </select>

@@ -12,6 +12,7 @@ import {
   fixturesTable,
   weekOddsTable,
   ticketsTable,
+  agentCollectionsTable,
 } from "@workspace/db";
 import {
   CreateAgentBody,
@@ -87,6 +88,219 @@ router.get("/admin/stats", async (_req, res): Promise<void> => {
     weekStake,
     weekPayout,
   });
+});
+
+router.get("/admin/reports", async (req, res) => {
+  const weekId = req.query.weekId
+    ? Number(req.query.weekId)
+    : undefined;
+
+const [salesRow] = await db
+  .select({
+    sales: sql<string>`
+      coalesce(sum(${ticketsTable.stake}), 0)
+    `,
+  })
+  .from(ticketsTable)
+  .where(
+    weekId
+      ? eq(ticketsTable.weekId, weekId)
+      : undefined
+  );
+
+const [collectionsRow] = await db
+  .select({
+    collections: sql<string>`
+      coalesce(
+        sum(${agentCollectionsTable.cashAmount})
+        +
+        sum(${agentCollectionsTable.transferAmount}),
+        0
+      )
+    `,
+  })
+  .from(agentCollectionsTable)
+  .where(
+    weekId
+      ? eq(agentCollectionsTable.weekId, weekId)
+      : undefined
+  );
+
+const sales = Number(
+  salesRow?.sales ?? 0
+);
+
+const collections = Number(
+  collectionsRow?.collections ?? 0
+);
+
+const outstanding =
+  sales - collections;
+
+const managers = await db
+  .select({
+    id: managersTable.id,
+    name: usersTable.name,
+  })
+  .from(managersTable)
+  .innerJoin(
+    usersTable,
+    eq(usersTable.id, managersTable.userId)
+  );
+
+const managerRows = [];
+for (const manager of managers) {
+  const agents = await db
+    .select({
+      id: agentsTable.id,
+    })
+    .from(agentsTable)
+    .where(
+      eq(
+        agentsTable.managerId,
+        manager.id
+      )
+    );
+
+  let managerSales = 0;
+  let managerCollections = 0;
+
+  for (const agent of agents) {
+    const [{ sales }] = await db
+      .select({
+        sales: sql<number>`
+          coalesce(sum(${ticketsTable.stake}),0)
+        `,
+      })
+      .from(ticketsTable)
+      .where(
+        weekId
+          ? and(
+              eq(
+                ticketsTable.agentId,
+                agent.id
+              ),
+              eq(
+                ticketsTable.weekId,
+                weekId
+              )
+            )
+          : eq(
+              ticketsTable.agentId,
+              agent.id
+            )
+      );
+
+    const [collections] = await db
+      .select({
+        cash: sql<number>`
+          coalesce(sum(${agentCollectionsTable.cashAmount}),0)
+        `,
+        transfer: sql<number>`
+          coalesce(sum(${agentCollectionsTable.transferAmount}),0)
+        `,
+      })
+      .from(agentCollectionsTable)
+      .where(
+        weekId
+          ? and(
+              eq(
+                agentCollectionsTable.agentId,
+                agent.id
+              ),
+              eq(
+                agentCollectionsTable.weekId,
+                weekId
+              )
+            )
+          : eq(
+              agentCollectionsTable.agentId,
+              agent.id
+            )
+      );
+
+    managerSales += Number(sales ?? 0);
+
+    managerCollections +=
+      Number(collections.cash ?? 0) +
+      Number(collections.transfer ?? 0);
+  }
+
+  managerRows.push({
+    managerId: manager.id,
+    managerName: manager.name,
+    agents: agents.length,
+    sales: managerSales,
+    collections: managerCollections,
+    outstanding:
+      managerSales -
+      managerCollections,
+  });
+}
+
+const [settlementRow] = await db
+  .select({
+    validSales: sql<string>`
+      coalesce(sum(${ticketsTable.stake}),0)
+    `,
+    totalWinnings: sql<string>`
+      coalesce(sum(${ticketsTable.winnings}),0)
+    `,
+  })
+  .from(ticketsTable)
+  .where(
+    weekId
+      ? and(
+          eq(ticketsTable.weekId, weekId),
+          inArray(
+            ticketsTable.status,
+            ["won", "lost"]
+          )
+        )
+      : inArray(
+          ticketsTable.status,
+          ["won", "lost"]
+        )
+  );
+
+const validSales = Number(
+  settlementRow?.validSales ?? 0
+);
+
+const totalWinnings = Number(
+  settlementRow?.totalWinnings ?? 0
+);
+
+const [selectedWeek] = weekId
+  ? await db
+      .select()
+      .from(poolWeeksTable)
+      .where(eq(poolWeeksTable.id, weekId))
+  : [];
+
+const commissionPercent = Number(
+  selectedWeek?.commissionPercent ?? 0
+);
+
+const agentCommission =
+  (validSales * commissionPercent) / 100;
+
+const netRevenue =
+  validSales -
+  totalWinnings -
+  agentCommission;
+
+  res.json({
+  weekId,
+  sales,
+  collections,
+  outstanding,
+  validSales,
+  totalWinnings,
+  agentCommission,
+  netRevenue,
+  managers: managerRows,
+});
 });
 
 // ----- Agent Applications -----

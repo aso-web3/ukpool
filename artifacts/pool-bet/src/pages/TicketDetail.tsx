@@ -29,14 +29,6 @@ export default function TicketDetail() {
   const { data: me } = useGetMe();
   const cancel = useCancelTicket();
 
-useEffect(() => {
-  const timer = setTimeout(() => {
-    window.print();
-  }, 500);
-
-  return () => clearTimeout(timer);
-}, []);
-
   if (isLoading) return <div className="text-muted-foreground">Loading...</div>;
   if (!t) return <div className="text-muted-foreground">Ticket not found</div>;
 

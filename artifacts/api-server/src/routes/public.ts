@@ -40,11 +40,15 @@ router.get("/public/weeks", async (_req, res): Promise<void> => {
   const weeks = await db
     .select({
       id: poolWeeksTable.id,
+      season: poolWeeksTable.season,
       weekNumber: poolWeeksTable.weekNumber,
       status: poolWeeksTable.status,
     })
     .from(poolWeeksTable)
-    .orderBy(desc(poolWeeksTable.weekNumber));
+    .orderBy(
+  desc(poolWeeksTable.season),
+  desc(poolWeeksTable.weekNumber)
+);
 
   res.json(weeks);
 });

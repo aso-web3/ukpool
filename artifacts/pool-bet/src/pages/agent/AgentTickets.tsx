@@ -134,7 +134,7 @@ useEffect(() => {
         key={`week-${w.id}`}
         value={String(w.id)}
       >
-        Week #{w.weekNumber}
+        {w.season}/{w.season + 1} - Week {w.weekNumber}
       </SelectItem>
     ))}
   </SelectContent>
