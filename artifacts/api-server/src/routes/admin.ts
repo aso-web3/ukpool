@@ -290,6 +290,65 @@ const netRevenue =
   totalWinnings -
   agentCommission;
 
+const agentSettlement = weekId
+  ? await db
+      .select({
+        agentId: agentsTable.id,
+        agentName: agentsTable.shopName,
+
+        validSales: sql<string>`
+          coalesce(sum(${ticketsTable.stake}),0)
+        `,
+
+        winnings: sql<string>`
+          coalesce(sum(${ticketsTable.winnings}),0)
+        `,
+      })
+      .from(ticketsTable)
+      .innerJoin(
+        agentsTable,
+        eq(ticketsTable.agentId, agentsTable.id)
+      )
+      .where(
+        and(
+          eq(ticketsTable.weekId, weekId),
+          inArray(
+            ticketsTable.status,
+            ["won", "lost"]
+          )
+        )
+      )
+      .groupBy(
+        agentsTable.id,
+        agentsTable.shopName
+      )
+  : [];
+
+const agentSettlementRows =
+  agentSettlement.map((row) => {
+    const validSales = Number(
+      row.validSales ?? 0
+    );
+
+    const winnings = Number(
+      row.winnings ?? 0
+    );
+
+    const commissionAmount =
+      (validSales * commissionPercent) / 100;
+
+    return {
+      agentId: row.agentId,
+      agentName: row.agentName,
+
+      validSales,
+      winnings,
+
+      commissionPercent,
+      commissionAmount,
+    };
+  });
+
   res.json({
   weekId,
   sales,
@@ -300,6 +359,7 @@ const netRevenue =
   agentCommission,
   netRevenue,
   managers: managerRows,
+  agentSettlement: agentSettlementRows,
 });
 });
 

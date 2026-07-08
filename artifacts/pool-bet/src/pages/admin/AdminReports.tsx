@@ -16,6 +16,7 @@ const [report, setReport] = useState({
   netRevenue: 0,
 });
   const [managers, setManagers] = useState<any[]>([]);
+  const [agentSettlement, setAgentSettlement] = useState<any[]>([]);
 
 useEffect(() => {
   fetch("/api/public/weeks")
@@ -59,6 +60,12 @@ useEffect(() => {
       ? d.managers
       : []
   );
+
+setAgentSettlement(
+  Array.isArray(d.agentSettlement)
+    ? d.agentSettlement
+    : []
+);
 });
 }, [weekId]);
 
@@ -243,6 +250,69 @@ useEffect(() => {
   </div>
 </div>
 
+  </div>
+</Card>
+
+<Card className="p-6 w-full">
+  <h2 className="font-semibold mb-4">
+    Agent Settlement Breakdown
+  </h2>
+
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead>
+        <tr className="border-b">
+          <th className="text-left py-3 px-4">
+            Agent
+          </th>
+
+          <th className="text-right py-3 px-4">
+            Valid Sales
+          </th>
+
+          <th className="text-right py-3 px-4">
+            Winnings
+          </th>
+
+          <th className="text-right py-3 px-4">
+            Comm %
+          </th>
+
+          <th className="text-right py-3 px-4">
+            Commission
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {agentSettlement.map((a) => (
+          <tr
+            key={a.agentId}
+            className="border-b"
+          >
+            <td className="py-3 px-4">
+              {a.agentName}
+            </td>
+
+            <td className="text-right px-4 py-3">
+              {formatCurrency(a.validSales)}
+            </td>
+
+            <td className="text-right px-4 py-3">
+              {formatCurrency(a.winnings)}
+            </td>
+
+            <td className="text-right px-4 py-3">
+              {a.commissionPercent}%
+            </td>
+
+            <td className="text-right px-4 py-3">
+              {formatCurrency(a.commissionAmount)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
 </Card>
     </div>
