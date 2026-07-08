@@ -312,6 +312,27 @@ setAgentSettlement(
           </tr>
         ))}
       </tbody>
+<tr className="font-semibold border-t">
+  <td className="py-3 px-4">
+    TOTAL
+  </td>
+
+  <td className="text-right px-4 py-3">
+    {formatCurrency(report.validSales)}
+  </td>
+
+  <td className="text-right px-4 py-3">
+    {formatCurrency(report.totalWinnings)}
+  </td>
+
+  <td className="text-right px-4 py-3">
+    -
+  </td>
+
+  <td className="text-right px-4 py-3">
+    {formatCurrency(report.agentCommission)}
+  </td>
+</tr>
     </table>
   </div>
 </Card>
