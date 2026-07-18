@@ -9,3 +9,5 @@ export * from "./tickets";
 export * from "./sessions";
 export * from "./managers";
 export * from "./agentCollections";
+export * from "./commissionSettings";
+export * from "./managerCommissionPayments";

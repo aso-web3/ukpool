@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { and, asc, desc, eq, sql, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, sql, inArray, gte, lt } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -13,6 +13,8 @@ import {
   weekOddsTable,
   ticketsTable,
   agentCollectionsTable,
+  commissionSettingsTable,
+  managerCommissionPaymentsTable,
 } from "@workspace/db";
 import {
   CreateAgentBody,
@@ -137,6 +139,17 @@ const collections = Number(
 const outstanding =
   sales - collections;
 
+const [selectedWeek] = weekId
+  ? await db
+      .select()
+      .from(poolWeeksTable)
+      .where(eq(poolWeeksTable.id, weekId))
+  : [];
+
+const commissionPercent = Number(
+  selectedWeek?.commissionPercent ?? 0
+);
+
 const managers = await db
   .select({
     id: managersTable.id,
@@ -164,6 +177,8 @@ for (const manager of managers) {
 
   let managerSales = 0;
   let managerCollections = 0;
+  let managerWinnings = 0;
+  let managerAgentCommission = 0;
 
   for (const agent of agents) {
     const [{ sales }] = await db
@@ -190,6 +205,32 @@ for (const manager of managers) {
               agent.id
             )
       );
+
+const [settlement] = await db
+  .select({
+    winnings: sql<number>`
+      coalesce(sum(${ticketsTable.winnings}),0)
+    `,
+  })
+  .from(ticketsTable)
+  .where(
+    weekId
+      ? and(
+          eq(ticketsTable.agentId, agent.id),
+          eq(ticketsTable.weekId, weekId),
+          inArray(
+            ticketsTable.status,
+            ["won", "lost"]
+          )
+        )
+      : and(
+          eq(ticketsTable.agentId, agent.id),
+          inArray(
+            ticketsTable.status,
+            ["won", "lost"]
+          )
+        )
+  );
 
     const [collections] = await db
       .select({
@@ -224,6 +265,12 @@ for (const manager of managers) {
     managerCollections +=
       Number(collections.cash ?? 0) +
       Number(collections.transfer ?? 0);
+managerWinnings += Number(
+  settlement?.winnings ?? 0
+);
+
+managerAgentCommission +=
+  (Number(sales ?? 0) * commissionPercent) / 100;
   }
 
   managerRows.push({
@@ -235,6 +282,15 @@ for (const manager of managers) {
     outstanding:
       managerSales -
       managerCollections,
+    winnings: managerWinnings,
+
+    agentCommission:
+       managerAgentCommission,
+
+    netRevenue:
+       managerSales -
+       managerWinnings -
+       managerAgentCommission,
   });
 }
 
@@ -269,17 +325,6 @@ const validSales = Number(
 
 const totalWinnings = Number(
   settlementRow?.totalWinnings ?? 0
-);
-
-const [selectedWeek] = weekId
-  ? await db
-      .select()
-      .from(poolWeeksTable)
-      .where(eq(poolWeeksTable.id, weekId))
-  : [];
-
-const commissionPercent = Number(
-  selectedWeek?.commissionPercent ?? 0
 );
 
 const agentCommission =
@@ -362,6 +407,509 @@ const agentSettlementRows =
   agentSettlement: agentSettlementRows,
 });
 });
+
+router.get(
+  "/admin/monthly-manager-report",
+  async (req, res) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+
+    if (!month || !year) {
+      res.status(400).json({
+        error: "Month and year required",
+      });
+      return;
+    }
+
+    const startDate = new Date(
+      Date.UTC(year, month - 1, 1)
+    );
+
+    const endDate = new Date(
+      Date.UTC(year, month, 1)
+    );
+
+    const [settings] = await db
+      .select()
+      .from(commissionSettingsTable)
+      .limit(1);
+
+    const commissionPercent =
+      Number(
+        settings?.defaultCommissionPercent ?? 2
+      );
+
+    const managers = await db
+      .select({
+        id: managersTable.id,
+        name: usersTable.name,
+      })
+      .from(managersTable)
+      .innerJoin(
+        usersTable,
+        eq(usersTable.id, managersTable.userId)
+      );
+
+    const managerRows = [];
+
+    let totalNetRevenue = 0;
+    let totalCommission = 0;
+
+    for (const manager of managers) {
+      const agents = await db
+        .select({
+          id: agentsTable.id,
+        })
+        .from(agentsTable)
+        .where(
+          eq(
+            agentsTable.managerId,
+            manager.id
+          )
+        );
+
+      let managerSales = 0;
+      let managerWinnings = 0;
+      let managerAgentCommission = 0;
+
+      for (const agent of agents) {
+        const [row] = await db
+          .select({
+            sales: sql<number>`
+              coalesce(sum(${ticketsTable.stake}),0)
+            `,
+            winnings: sql<number>`
+              coalesce(sum(${ticketsTable.winnings}),0)
+            `,
+          })
+          .from(ticketsTable)
+          .innerJoin(
+            poolWeeksTable,
+            eq(
+              poolWeeksTable.id,
+              ticketsTable.weekId
+            )
+          )
+          .where(
+            and(
+              eq(
+                ticketsTable.agentId,
+                agent.id
+              ),
+              inArray(
+                ticketsTable.status,
+                ["won", "lost"]
+              ),
+              eq(
+                poolWeeksTable.status,
+                "settled"
+              ),
+              gte(
+                poolWeeksTable.settledAt,
+                startDate
+              ),
+              lt(
+                poolWeeksTable.settledAt,
+                endDate
+              )
+            )
+          );
+
+        const sales =
+          Number(row?.sales ?? 0);
+
+        const winnings =
+          Number(row?.winnings ?? 0);
+
+        managerSales += sales;
+
+        managerWinnings += winnings;
+
+        managerAgentCommission +=
+          (sales * commissionPercent) / 100;
+      }
+
+      const netRevenue =
+        managerSales -
+        managerWinnings -
+        managerAgentCommission;
+
+      const managerCommission =
+        (netRevenue * commissionPercent) / 100;
+
+      totalNetRevenue += netRevenue;
+      totalCommission += managerCommission;
+
+      managerRows.push({
+        managerId: manager.id,
+        managerName: manager.name,
+
+        netRevenue,
+
+        commissionPercent,
+
+        commissionAmount:
+          Number(managerCommission.toFixed(2)),
+      });
+    }
+
+    res.json({
+      month,
+      year,
+
+      commissionPercent,
+
+      paymentScheduleType:
+        settings?.paymentScheduleType,
+
+      paymentScheduleValue:
+        settings?.paymentScheduleValue,
+
+      managers: managerRows,
+
+      totalNetRevenue,
+
+      totalCommission:
+        Number(totalCommission.toFixed(2)),
+
+      adminProfit:
+        Number(
+          (totalNetRevenue - totalCommission)
+            .toFixed(2)
+        ),
+    });
+  }
+);
+
+router.post(
+  "/admin/monthly-manager-report/pay",
+  async (req, res) => {
+    const { month, year } = req.body;
+
+    const userId = req.auth?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        error: "Authentication required",
+      });
+      return;
+    }
+
+    if (!month || !year) {
+      res.status(400).json({
+        error: "Month and year required",
+      });
+      return;
+    }
+
+    const existing = await db
+      .select()
+      .from(managerCommissionPaymentsTable)
+      .where(
+        and(
+          eq(
+            managerCommissionPaymentsTable.month,
+            Number(month)
+          ),
+          eq(
+            managerCommissionPaymentsTable.year,
+            Number(year)
+          )
+        )
+      );
+
+    if (existing.length > 0) {
+      res.status(400).json({
+        error: "Month already paid",
+      });
+      return;
+    }
+
+const startDate = new Date(
+  Date.UTC(Number(year), Number(month) - 1, 1)
+);
+
+const endDate = new Date(
+  Date.UTC(Number(year), Number(month), 1)
+);
+
+const [settings] = await db
+  .select()
+  .from(commissionSettingsTable)
+  .limit(1);
+
+const commissionPercent =
+  Number(
+    settings?.defaultCommissionPercent ?? 2
+  );
+
+const managers = await db
+  .select({
+    id: managersTable.id,
+    name: usersTable.name,
+  })
+  .from(managersTable)
+  .innerJoin(
+    usersTable,
+    eq(usersTable.id, managersTable.userId)
+  );
+
+let totalAgents = 0;
+let totalNetRevenue = 0;
+const paymentPreview = [];
+let totalCommission = 0;
+
+for (const manager of managers) {
+  const agents = await db
+    .select({
+      id: agentsTable.id,
+    })
+    .from(agentsTable)
+    .where(
+      eq(
+        agentsTable.managerId,
+        manager.id
+      )
+    );
+
+  totalAgents += agents.length;
+
+  let managerSales = 0;
+  let managerWinnings = 0;
+  let managerAgentCommission = 0;
+
+for (const agent of agents) {
+  const [row] = await db
+    .select({
+  sales: sql<number>`
+    coalesce(sum(${ticketsTable.stake}),0)
+  `,
+
+  winnings: sql<number>`
+    coalesce(sum(${ticketsTable.winnings}),0)
+  `,
+})
+    .from(ticketsTable)
+    .innerJoin(
+      poolWeeksTable,
+      eq(
+        poolWeeksTable.id,
+        ticketsTable.weekId
+      )
+    )
+    .where(
+      and(
+        eq(
+          ticketsTable.agentId,
+          agent.id
+        ),
+        inArray(
+          ticketsTable.status,
+          ["won", "lost"]
+        ),
+        eq(
+          poolWeeksTable.status,
+          "settled"
+        ),
+        gte(
+          poolWeeksTable.settledAt,
+          startDate
+        ),
+        lt(
+          poolWeeksTable.settledAt,
+          endDate
+        )
+      )
+    );
+
+managerSales += Number(
+  row?.sales ?? 0
+);
+
+managerWinnings += Number(
+  row?.winnings ?? 0
+);
+
+managerAgentCommission +=
+  (Number(row?.sales ?? 0) *
+    commissionPercent) /
+  100;
+}
+
+const netRevenue =
+  managerSales -
+  managerWinnings -
+  managerAgentCommission;
+
+const managerCommission =
+  (netRevenue * commissionPercent) / 100;
+
+paymentPreview.push({
+  managerId: manager.id,
+  managerName: manager.name,
+  commissionAmount: Number(
+    managerCommission.toFixed(2)
+  ),
+});
+
+totalCommission += managerCommission;
+
+totalNetRevenue += netRevenue;
+
+await db.insert(
+  managerCommissionPaymentsTable
+).values({
+  month: Number(month),
+
+  year: Number(year),
+
+  managerId: manager.id,
+
+  commissionPercent:
+  commissionPercent.toFixed(2),
+
+commissionAmount:
+  managerCommission.toFixed(2),
+
+  status: "paid",
+
+  paidAt: new Date(),
+
+  paidByUserId: userId,
+  });
+
+}
+
+res.json({
+  success: true,
+
+  managerCount:
+    paymentPreview.length,
+
+  totalNetRevenue:
+    Number(totalNetRevenue.toFixed(2)),
+
+  totalCommission:
+    Number(totalCommission.toFixed(2)),
+
+  managers:
+    paymentPreview,
+});
+  }
+);
+
+router.get(
+  "/admin/monthly-manager-report/status",
+  async (req, res) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+
+    const payments = await db
+      .select({
+        paidAt:
+          managerCommissionPaymentsTable.paidAt,
+
+        commissionAmount:
+          managerCommissionPaymentsTable
+            .commissionAmount,
+      })
+      .from(managerCommissionPaymentsTable)
+      .where(
+        and(
+          eq(
+            managerCommissionPaymentsTable.month,
+            month
+          ),
+          eq(
+            managerCommissionPaymentsTable.year,
+            year
+          )
+        )
+      );
+
+    if (payments.length === 0) {
+      res.json({
+        status: "pending",
+      });
+      return;
+    }
+
+    const totalCommission =
+      payments.reduce(
+        (sum, row) =>
+          sum +
+          Number(
+            row.commissionAmount ?? 0
+          ),
+        0
+      );
+
+    res.json({
+      status: "paid",
+
+      paidAt:
+        payments[0]?.paidAt,
+
+      totalCommission:
+        Number(
+          totalCommission.toFixed(2)
+        ),
+    });
+  }
+);
+
+router.get(
+  "/admin/commission-settings",
+  async (_req, res): Promise<void> => {
+    const [settings] = await db
+      .select()
+      .from(commissionSettingsTable)
+      .limit(1);
+
+    res.json(settings);
+  }
+);
+
+router.put(
+  "/admin/commission-settings",
+  async (req, res): Promise<void> => {
+    const {
+      defaultCommissionPercent,
+      paymentScheduleType,
+      paymentScheduleValue,
+    } = req.body;
+
+    await db
+      .update(commissionSettingsTable)
+      .set({
+        defaultCommissionPercent:
+          Number(defaultCommissionPercent),
+
+        paymentScheduleType,
+
+        paymentScheduleValue:
+          String(paymentScheduleValue),
+      })
+      .where(
+        eq(
+          commissionSettingsTable.id,
+          1
+        )
+      );
+
+    const [updated] = await db
+      .select()
+      .from(commissionSettingsTable)
+      .where(
+        eq(
+          commissionSettingsTable.id,
+          1
+        )
+      );
+
+    res.json(updated);
+  }
+);
 
 // ----- Agent Applications -----
 router.get("/admin/agent-applications", async (req, res): Promise<void> => {
