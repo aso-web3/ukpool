@@ -389,6 +389,22 @@ router.post("/tickets", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Week is not open for betting" });
     return;
   }
+
+const now = new Date();
+
+if (now < week.opensAt) {
+  res.status(400).json({
+    error: "Betting has not opened yet",
+  });
+  return;
+}
+
+if (now >= week.closesAt) {
+  res.status(400).json({
+    error: "Betting for this week has closed",
+  });
+  return;
+}
   // Check no closed/postponed fixtures selected
   const fixtures = await db
     .select()

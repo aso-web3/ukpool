@@ -8,6 +8,7 @@ import {
   cashiersTable,
   poolWeeksTable,
   ticketsTable,
+  agentCollectionsTable,
 } from "@workspace/db";
 import { CreateCashierBody } from "@workspace/api-zod";
 import { requireRole } from "../middlewares/auth";
@@ -176,6 +177,103 @@ router.get("/agent/pool-weeks/:id/commission", async (req, res): Promise<void> =
     validSales,
     commissionAmount,
   });
+});
+
+router.get("/agent/reports", async (req, res): Promise<void> => {
+  const agentId = req.auth?.agentId;
+
+  if (!agentId) {
+    res.status(400).json({ error: "Agent not found" });
+    return;
+  }
+
+  const weekId = req.query.weekId
+    ? Number(req.query.weekId)
+    : undefined;
+
+const ticketTotals = await db
+  .select({
+    weekId: ticketsTable.weekId,
+
+    validSales: sql<number>`
+      coalesce(sum(${ticketsTable.stake}),0)
+    `,
+
+    winnings: sql<number>`
+      coalesce(sum(${ticketsTable.winnings}),0)
+    `,
+  })
+  .from(ticketsTable)
+  .where(
+    and(
+      eq(ticketsTable.agentId, agentId),
+      sql`${ticketsTable.status} IN ('won','lost')`
+    )
+  )
+  .groupBy(ticketsTable.weekId);
+
+const collectionTotals = await db
+  .select({
+    weekId: agentCollectionsTable.weekId,
+
+    paidToManager: sql<number>`
+      coalesce(
+        sum(${agentCollectionsTable.cashAmount}) +
+        sum(${agentCollectionsTable.transferAmount}),
+        0
+      )
+    `,
+  })
+  .from(agentCollectionsTable)
+  .where(eq(agentCollectionsTable.agentId, agentId))
+  .groupBy(agentCollectionsTable.weekId);
+
+const ticketMap = new Map(
+  ticketTotals.map((row) => [row.weekId, row])
+);
+
+const collectionMap = new Map(
+  collectionTotals.map((row) => [row.weekId, row])
+);
+
+const rows = await db
+  .select({
+    weekId: poolWeeksTable.id,
+    season: poolWeeksTable.season,
+    weekNumber: poolWeeksTable.weekNumber,
+    commissionPercent: poolWeeksTable.commissionPercent,
+  })
+  .from(poolWeeksTable)
+  .where(
+    weekId
+      ? eq(poolWeeksTable.id, weekId)
+      : undefined
+  )
+  .orderBy(desc(poolWeeksTable.weekNumber));
+
+const response = rows.map((row) => {
+  const ticket = ticketMap.get(row.weekId);
+  const collection = collectionMap.get(row.weekId);
+
+  const validSales = Number(ticket?.validSales ?? 0);
+  const winnings = Number(ticket?.winnings ?? 0);
+  const paidToManager = Number(collection?.paidToManager ?? 0);
+  const commission =
+    validSales * (Number(row.commissionPercent ?? 0) / 100);
+
+  return {
+    weekId: row.weekId,
+    season: row.season,
+    weekNumber: row.weekNumber,
+    validSales,
+    winnings,
+    paidToManager,
+    outstandingBalance: validSales - paidToManager,
+    commission,
+  };
+});
+
+res.json(response);
 });
 
 router.get("/agent/cashiers", async (req, res): Promise<void> => {

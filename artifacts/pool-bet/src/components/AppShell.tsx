@@ -207,6 +207,7 @@ function getNavItems(role: AuthUserRole) {
         { href: "/agent", label: "Dashboard", icon: LayoutDashboard },
         { href: "/agent/cashiers", label: "Cashiers", icon: Users },
         { href: "/agent/tickets", label: "Tickets", icon: Receipt },
+        { href: "/agent/reports", label: "Reports", icon: BarChart3 },
       ];
     case "manager":
       return [

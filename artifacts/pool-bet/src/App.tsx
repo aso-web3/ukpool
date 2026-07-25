@@ -23,6 +23,7 @@ import ManagerReports from "@/pages/manager/ManagerReports";
 import AgentDashboard from "@/pages/agent/AgentDashboard";
 import AgentCashiers from "@/pages/agent/AgentCashiers";
 import AgentTickets from "@/pages/agent/AgentTickets";
+import AgentReports from "@/pages/agent/AgentReports";
 import CashierDashboard from "@/pages/cashier/CashierDashboard";
 import CashierSell from "@/pages/cashier/CashierSell";
 import CashierTickets from "@/pages/cashier/CashierTickets";
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/agent">{() => <Protected roles={["agent"]}><AgentDashboard /></Protected>}</Route>
       <Route path="/agent/cashiers">{() => <Protected roles={["agent"]}><AgentCashiers /></Protected>}</Route>
       <Route path="/agent/tickets">{() => <Protected roles={["agent"]}><AgentTickets /></Protected>}</Route>
+      <Route path="/agent/reports">{() => <Protected roles={["agent"]}><AgentReports /></Protected>}</Route>
 
       <Route path="/manager">{() => <Protected roles={["manager"]}><ManagerDashboard /></Protected>}</Route>
       <Route path="/manager/agents">{() => <Protected roles={["manager"]}><ManagerAgents /></Protected>}</Route>

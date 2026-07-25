@@ -199,6 +199,10 @@ setLocation(`/tickets/${t.id}`);
 
   if (isLoading) return <div className="text-muted-foreground">Loading...</div>;
   if (!data) return <div className="text-muted-foreground">Week not found</div>;
+  const now = new Date();
+  const closesAt = new Date(data.week.closesAt);
+
+  const bettingClosed = now >= closesAt;
   if (data.week.status !== "open") {
     return (
       <Card className="p-8 text-center">
@@ -328,8 +332,23 @@ setLocation(`/tickets/${t.id}`);
               </div>
             </div>
           )}
-          <Button size="lg" className="w-full" onClick={onPlace} disabled={!!validationError || totalLines === 0 || createTicket.isPending}>
+          <Button
+  size="lg"
+  className="w-full"
+  onClick={onPlace}
+  disabled={
+    !!validationError ||
+    totalLines === 0 ||
+    createTicket.isPending ||
+    bettingClosed
+  }
+>
             {createTicket.isPending ? "Placing..." : "Place bet"}
+{bettingClosed && (
+  <div className="rounded-md border border-destructive bg-destructive/10 text-destructive p-3 text-sm">
+    Betting for this week has closed.
+  </div>
+)}
           </Button>
         </Card>
       </div>
